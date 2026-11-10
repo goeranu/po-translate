@@ -596,52 +596,22 @@ class MyMemoryTranslator(Translator):
 class DeepLTranslator(Translator):
     """Translation via DeepL API (free or pro)."""
     
-    def __init__(self, api_key: str, free: bool = False):
-        self.api_key = api_key
-        self.base_url = "https://api-free.deepl.com" if free else "https://api.deepl.com"
-    
-    def _map_lang(self, lang: str) -> str:
-        """Map language codes to DeepL format."""
-        # DeepL uses uppercase and some specific codes
-        lang_map = {
-            'en': 'EN', 'de': 'DE', 'fr': 'FR', 'es': 'ES', 'it': 'IT',
-            'nl': 'NL', 'pl': 'PL', 'pt': 'PT-PT', 'pt-br': 'PT-BR',
-            'ru': 'RU', 'ja': 'JA', 'zh': 'ZH', 'ko': 'KO',
-            'sv': 'SV', 'da': 'DA', 'fi': 'FI', 'nb': 'NB', 'no': 'NB',
-            'el': 'EL', 'cs': 'CS', 'ro': 'RO', 'hu': 'HU', 'sk': 'SK',
-            'sl': 'SL', 'bg': 'BG', 'et': 'ET', 'lv': 'LV', 'lt': 'LT',
-            'uk': 'UK', 'id': 'ID', 'tr': 'TR',
-        }
-        return lang_map.get(lang.lower(), lang.upper())
+    def __init__(self, api_key: str):
+        import deepl
+        self.client = deepl.DeepLClient(api_key)
     
     def translate_batch(self, texts: list[str], source_lang: str, target_lang: str) -> list[str]:
         """Translate batch using DeepL API."""
         if not texts:
             return []
         
-        url = f"{self.base_url}/v2/translate"
-        
-        data = urllib.parse.urlencode({
-            'auth_key': self.api_key,
-            'text': texts,  # DeepL supports multiple texts
-            'source_lang': self._map_lang(source_lang),
-            'target_lang': self._map_lang(target_lang),
-        }, doseq=True).encode()
-        
-        req = urllib.request.Request(
-            url,
-            data=data,
-            headers={
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'User-Agent': 'po-translate/1.0'
-            }
-        )
-        
         try:
-            response = urllib.request.urlopen(req, timeout=60)
-            result = json.loads(response.read().decode())
-            
-            translations = [t['text'] for t in result.get('translations', [])]
+            result = self.client.translate_text(
+                texts,
+                source_lang=source_lang,
+                target_lang=target_lang
+            )
+            translations = [t.text for t in result]
             if len(translations) != len(texts):
                 raise TranslationError(f'DeepL returned {len(translations)} translations; expected {len(texts)}')
             return translations
@@ -769,11 +739,7 @@ def get_translator(service: str, config: dict) -> Translator:
     elif service == 'deepl':
         if not config.get('api_key'):
             raise ValueError("DeepL requires --api-key")
-        return DeepLTranslator(config['api_key'], free=False)
-    elif service == 'deepl-free':
-        if not config.get('api_key'):
-            raise ValueError("DeepL Free requires --api-key")
-        return DeepLTranslator(config['api_key'], free=True)
+        return DeepLTranslator(config['api_key'])
     elif service == 'libretranslate':
         return LibreTranslateTranslator(
             config.get('url', 'https://libretranslate.com'),
@@ -985,8 +951,7 @@ Services (free):
   libretranslate  Self-hosted or public instances
 
 Services (API key required):
-  deepl         DeepL Pro (best for European languages)
-  deepl-free    DeepL Free API
+  deepl         DeepL Pro (best for European languages) or DeepL Free
   google        Google Cloud Translation
   openai        GPT models (context-aware)
   anthropic     Claude models (context-aware)
@@ -997,7 +962,7 @@ Services (API key required):
     parser.add_argument('--source', '-s', help=_('Source language code (e.g., en)'))
     parser.add_argument('--target', '-t', help=_('Target language code (e.g., sv, de, fr). Defaults to system LANG.'))
     parser.add_argument('--service', default='lingva', 
-                        choices=['lingva', 'mymemory', 'libretranslate', 'deepl', 'deepl-free', 'google', 'openai', 'anthropic'],
+                        choices=['lingva', 'mymemory', 'libretranslate', 'deepl', 'google', 'openai', 'anthropic'],
                         help=_('Translation service (default: lingva)'))
     parser.add_argument('--api-key', help=_('API key for paid services'))
     parser.add_argument('--url', help=_('Custom URL for LibreTranslate'))
