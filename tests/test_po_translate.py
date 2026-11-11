@@ -49,6 +49,26 @@ class TestDeepLTranslator:
         assert po_translate.DeepLTranslator._map_lang("pt") == "PT-PT"
         assert po_translate.DeepLTranslator._map_lang("pt_BR") == "PT-BR"
 
+    def test_deepl_free_remains_a_compatibility_alias(self):
+        class Client:
+            def __init__(self, api_key):
+                self.api_key = api_key
+
+        old_module = sys.modules.get("deepl")
+        sys.modules["deepl"] = types.SimpleNamespace(DeepLClient=Client)
+        try:
+            translator = po_translate.get_translator(
+                "deepl-free", {"api_key": "test-key"}
+            )
+        finally:
+            if old_module is None:
+                del sys.modules["deepl"]
+            else:
+                sys.modules["deepl"] = old_module
+
+        assert isinstance(translator, po_translate.DeepLTranslator)
+        assert translator.client.api_key == "test-key"
+
 
 # === PO Parsing ===
 

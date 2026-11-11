@@ -752,7 +752,7 @@ def get_translator(service: str, config: dict) -> Translator:
         )
     elif service == 'mymemory':
         return MyMemoryTranslator(config.get('email'))
-    elif service == 'deepl':
+    elif service in ('deepl', 'deepl-free'):
         if not config.get('api_key'):
             raise ValueError("DeepL requires --api-key")
         return DeepLTranslator(config['api_key'])
@@ -978,7 +978,7 @@ Services (API key required):
     parser.add_argument('--source', '-s', help=_('Source language code (e.g., en)'))
     parser.add_argument('--target', '-t', help=_('Target language code (e.g., sv, de, fr). Defaults to system LANG.'))
     parser.add_argument('--service', default='lingva', 
-                        choices=['lingva', 'mymemory', 'libretranslate', 'deepl', 'google', 'openai', 'anthropic'],
+                        choices=['lingva', 'mymemory', 'libretranslate', 'deepl', 'deepl-free', 'google', 'openai', 'anthropic'],
                         help=_('Translation service (default: lingva)'))
     parser.add_argument('--api-key', help=_('API key for paid services'))
     parser.add_argument('--url', help=_('Custom URL for LibreTranslate'))
