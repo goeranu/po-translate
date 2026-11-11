@@ -597,8 +597,24 @@ class DeepLTranslator(Translator):
     """Translation via DeepL API (free or pro)."""
     
     def __init__(self, api_key: str):
-        import deepl
+        try:
+            import deepl
+        except ImportError as exc:
+            raise ValueError(
+                "DeepL support requires the deepl package. Reinstall po-translate."
+            ) from exc
         self.client = deepl.DeepLClient(api_key)
+
+    @staticmethod
+    def _map_lang(lang: str) -> str:
+        """Map generic locale codes to DeepL's supported language codes."""
+        normalized = lang.replace('_', '-').lower()
+        aliases = {
+            'no': 'NB',
+            'pt': 'PT-PT',
+            'pt-br': 'PT-BR',
+        }
+        return aliases.get(normalized, normalized.upper())
     
     def translate_batch(self, texts: list[str], source_lang: str, target_lang: str) -> list[str]:
         """Translate batch using DeepL API."""
@@ -608,8 +624,8 @@ class DeepLTranslator(Translator):
         try:
             result = self.client.translate_text(
                 texts,
-                source_lang=source_lang,
-                target_lang=target_lang
+                source_lang=self._map_lang(source_lang),
+                target_lang=self._map_lang(target_lang)
             )
             translations = [t.text for t in result]
             if len(translations) != len(texts):
@@ -951,7 +967,7 @@ Services (free):
   libretranslate  Self-hosted or public instances
 
 Services (API key required):
-  deepl         DeepL Pro (best for European languages) or DeepL Free
+  deepl         DeepL API (Free or Pro, best for European languages)
   google        Google Cloud Translation
   openai        GPT models (context-aware)
   anthropic     Claude models (context-aware)

@@ -7,7 +7,7 @@ URL:            https://github.com/yeager/po-translate
 Source0:        %{name}-%{version}.tar.gz
 BuildArch:      noarch
 Requires:       python3 >= 3.10
-Recommends:     python3dist(deepl)
+Requires:       python3dist(deepl)
 
 %description
 A CLI tool for batch translating PO and TS files using
